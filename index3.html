@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אתר היומנים</title>
+    <style>
+        /* איפוס הגדרות בסיסיות */
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* הגדרות לתמונת הרקע */
+        .main-container {
+            position: relative;
+        }
+
+        /* שימוש בגודל המקורי של התמונה כדי שהקואורדינטות של המפה יעבדו במדויק */
+        #bg-image {
+            display: block;
+            margin: 0 auto;
+        }
+
+        area {
+            cursor: pointer;
+        }
+
+        /* הגדרות לחלון הקופץ (Modal) */
+        .modal {
+            display: none; /* מוסתר כברירת מחדל */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); /* רקע כהה חצי שקוף */
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* כשהמודאל פעיל */
+        .modal.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* תוכן המודאל - התמונה הגדולה */
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        /* כפתור סגירה */
+        .close-btn {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: #fff;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: #ff4c4c;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <img src="https://i.ibb.co/fznSfYzs/Whats-App-Image-2026-03-15-at-17-55-25-1.jpg" alt="Background" usemap="#diary-map" id="bg-image">
+
+        <map name="diary-map">
+            <area target="" alt="יומן 1 - חלק א" title="יומן 1" href="javascript:void(0);" coords="363,82,341,124,464,181,486,132" shape="poly" onclick="openModal('modal1')">
+            <area target="" alt="יומן 1 - חלק ב" title="יומן 1" href="javascript:void(0);" coords="410,153,390,193,444,217,464,179" shape="poly" onclick="openModal('modal1')">
+            
+            <area target="" alt="יומן 2" title="יומן 2" href="javascript:void(0);" coords="184,58,151,1,14,0,1,14,7,28,0,82,82,124,108,121,169,79,168,81" shape="poly" onclick="openModal('modal2')">
+            
+            <area target="" alt="יומן 3" title="יומן 3" href="javascript:void(0);" coords="36,155,126,125,148,140,173,238,159,261,67,278" shape="poly" onclick="openModal('modal3')">
+        </map>
+    </div>
+
+    <div id="modal1" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('modal1')">&times;</button>
+            <img src="https://i.ibb.co/M5SpFXmb/Whats-App-Image-2026-03-17-at-12-17-00.jpg" alt="יומן פתוח 1">
+        </div>
+    </div>
+
+    <div id="modal2" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('modal2')">&times;</button>
+            <img src="https://i.ibb.co/KxZKm7yk/Whats-App-Image-2026-03-17-at-12-16-59-1.jpg" alt="יומן פתוח 2">
+        </div>
+    </div>
+
+    <div id="modal3" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('modal3')">&times;</button>
+            <img src="https://i.ibb.co/B5SRQS26/Whats-App-Image-2026-03-17-at-12-16-59.jpg" alt="יומן פתוח 3">
+        </div>
+    </div>
+
+    <script>
+        // פונקציה לפתיחת מודאל מסוים
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('show');
+        }
+
+        // פונקציה לסגירת מודאל מסוים
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('show');
+            // Timeout קטן כדי לאפשר לאנימציית ה-fade לסיים לפני שהתצוגה נעלמת לגמרי
+            setTimeout(() => {
+                modal.style.display = 'none';
+                // איפוס ה-display כדי שבפעם הבאה ה-class יוכל לטפל בו
+                modal.style.display = ''; 
+            }, 300);
+        }
+
+        // סגירת המודאל גם בלחיצה מחוץ לתמונה (על הרקע השחור)
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeModal(event.target.id);
+            }
+        }
+    </script>
+</body>
+</html>

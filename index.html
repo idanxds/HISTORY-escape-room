@@ -9,25 +9,27 @@
         body, html {
             margin: 0;
             padding: 0;
-            background-color: #1e1e1e;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            background-color: #000;
+            width: 100%;
+            height: 100%;
             overflow-x: hidden;
         }
 
         .main-container {
             position: relative;
-            width: 100%; /* תופס את כל רוחב המסך במחשב */
-            max-width: 1200px; /* הגבלת רוחב מקסימלי כדי שלא יימרח מדי במסכי ענק */
-            margin: 0 auto;
+            width: 100vw;
+            height: 100vh; /* במחשב יתפוס בדיוק את כל גובה ורוחב המסך */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
         }
 
-        /* תמונת הרקע מתאימה את עצמה לרוחב */
+        /* תמונת הרקע נמתחת על כל המסך */
         #bg-image {
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: fill; /* מבטיח מתיחה מלאה של התמונה על כל המסך במחשב */
             display: block;
         }
 
@@ -35,7 +37,7 @@
             cursor: pointer;
         }
 
-        /* הגדרות לחלון הקופץ (Modal) */
+        /* --- הגדרות חלון קופץ (Modal) --- */
         .modal {
             display: none;
             position: fixed;
@@ -44,73 +46,89 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
+            background-color: rgba(0, 0, 0, 0.9); /* רקע כהה יותר לקריאה נוחה */
             opacity: 0;
             transition: opacity 0.3s ease;
-            overflow-y: auto; /* מאפשר גלילה אם התמונה ארוכה מהמסך */
+            overflow-y: auto; /* מאפשר גלילה אם התמונה ארוכה */
         }
 
-        /* כשהמודאל פעיל */
         .modal.show {
             display: flex;
             opacity: 1;
-            align-items: flex-start; /* מתחיל מלמעלה כדי לאפשר גלילה נוחה בנייד */
+            align-items: flex-start;
             justify-content: center;
-            padding-top: 5vh; /* מרווח קטן מלמעלה */
-            padding-bottom: 5vh;
+            padding-top: 0; 
         }
 
-        /* תוכן המודאל - התמונה הגדולה */
+        /* תוכן המודאל - תמונת היומן */
         .modal-content {
             position: relative;
-            width: 95%;
-            max-width: 800px;
+            width: 100%; /* תופס 100% רוחב כדי למקסם גודל בנייד */
+            max-width: 900px; /* במחשב לא יעבור את ה-900 פיקסלים */
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             margin: auto;
         }
 
         .modal-content img {
             width: 100%;
-            height: auto; /* מאפשר לתמונה לגדול בהתאם לרוחב ולשמור על פרופורציות */
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            height: auto;
+            border-radius: 0; /* ללא פינות מעוגלות בנייד כדי לנצל כל פיקסל */
         }
 
-        /* כפתור סגירה */
+        /* כפתור סגירה מקובע למסך - תמיד יופיע למעלה גם כשגוללים */
         .close-btn {
-            position: absolute;
-            top: -45px;
-            right: 0;
+            position: fixed;
+            top: 15px;
+            right: 20px;
             color: #fff;
-            font-size: 40px;
-            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.6);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 35px;
+            line-height: 40px;
+            text-align: center;
             cursor: pointer;
-            background: none;
-            border: none;
-            transition: color 0.3s;
+            border: 2px solid #fff;
+            transition: background-color 0.3s, color 0.3s;
             z-index: 1001;
+            padding: 0;
         }
 
         .close-btn:hover {
-            color: #ff4c4c;
+            background-color: #ff4c4c;
+            color: #fff;
+            border-color: #ff4c4c;
         }
 
-        /* התאמות ספציפיות למחשב (מסכים רחבים) */
+        /* --- התאמות ספציפיות --- */
+        
+        /* התאמה למחשב (מסכים רחבים) */
         @media (min-width: 768px) {
             .modal.show {
-                align-items: center;
-                padding-top: 0;
+                align-items: center; /* במחשב ממרכז את היומן גם לאורך */
+                padding: 20px;
             }
             .modal-content img {
                 width: auto;
                 max-width: 100%;
-                max-height: 90vh; /* במחשב נשמור את התמונה בתוך גבולות המסך */
+                max-height: 95vh; /* במחשב נשמור את התמונה בתוך גבולות המסך */
+                border-radius: 8px; /* במחשב נחזיר פינות מעוגלות */
+                box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             }
-            .close-btn {
-                top: -30px;
-                right: -30px;
+        }
+
+        /* התאמה לנייד (טלפונים) */
+        @media (max-width: 767px) {
+            .main-container {
+                height: auto;
+                min-height: 100vh;
+            }
+            #bg-image {
+                height: auto; /* מחזיר לפרופורציות מקוריות בנייד כדי שלא יימעך */
+                object-fit: contain;
             }
         }
     </style>
@@ -131,77 +149,75 @@
     </div>
 
     <div id="modal1" class="modal">
+        <button class="close-btn" onclick="closeModal('modal1')">&times;</button>
         <div class="modal-content">
-            <button class="close-btn" onclick="closeModal('modal1')">&times;</button>
             <img src="https://i.ibb.co/M5SpFXmb/Whats-App-Image-2026-03-17-at-12-17-00.jpg" alt="יומן פתוח 1">
         </div>
     </div>
 
     <div id="modal2" class="modal">
+        <button class="close-btn" onclick="closeModal('modal2')">&times;</button>
         <div class="modal-content">
-            <button class="close-btn" onclick="closeModal('modal2')">&times;</button>
             <img src="https://i.ibb.co/KxZKm7yk/Whats-App-Image-2026-03-17-at-12-16-59-1.jpg" alt="יומן פתוח 2">
         </div>
     </div>
 
     <div id="modal3" class="modal">
+        <button class="close-btn" onclick="closeModal('modal3')">&times;</button>
         <div class="modal-content">
-            <button class="close-btn" onclick="closeModal('modal3')">&times;</button>
             <img src="https://i.ibb.co/B5SRQS26/Whats-App-Image-2026-03-17-at-12-16-59.jpg" alt="יומן פתוח 3">
         </div>
     </div>
 
     <script>
-        // --- מערכת התאמת מפת התמונה למסכים שונים ---
+        // --- מערכת חישוב הקואורדינטות הדינמית ---
         function resizeImageMap() {
             const img = document.getElementById('bg-image');
             const areas = document.querySelectorAll('map[name="diary-map"] area');
             
-            // הרוחב והגובה המקוריים של התמונה כפי שהועלתה
+            // הרוחב והגובה של תמונת המקור
             const originalWidth = 502; 
             const originalHeight = 312;
 
-            if (!img.clientWidth) return;
+            if (!img.clientWidth || !img.clientHeight) return;
 
-            // חישוב יחס ההקטנה/הגדלה הנוכחי
+            // החישוב מתבצע בנפרד לרוחב ולגובה - כך גם אם התמונה נמתחת במחשב, הקואורדינטות יתיישרו בדיוק מושלם
             const scaleX = img.clientWidth / originalWidth;
             const scaleY = img.clientHeight / originalHeight;
 
             areas.forEach(area => {
                 const originalCoords = area.getAttribute('data-coords').split(',');
                 const newCoords = originalCoords.map((coord, index) => {
-                    // קואורדינטות זוגיות הן X, אי-זוגיות הן Y
                     return Math.round(coord * (index % 2 === 0 ? scaleX : scaleY));
                 });
                 area.setAttribute('coords', newCoords.join(','));
             });
         }
 
-        // הפעלת הפונקציה בטעינה ובכל שינוי של גודל החלון
+        // האזנה לשינויי גודל מסך
         window.addEventListener('resize', resizeImageMap);
         window.addEventListener('load', resizeImageMap);
-        // טיפול במקרה שהתמונה נטענת אחרי ה-DOM
         document.getElementById('bg-image').onload = resizeImageMap;
 
 
-        // --- מערכת החלונות הקופצים (Modals) ---
+        // --- מערכת פתיחה וסגירה של היומנים ---
         function openModal(modalId) {
             const modal = document.getElementById(modalId);
             modal.classList.add('show');
-            document.body.style.overflow = 'hidden'; // מונע גלילה של רקע האתר כשמודאל פתוח
+            document.body.style.overflow = 'hidden'; // עוצר גלילה של הרקע כשיומן פתוח
         }
 
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
             modal.classList.remove('show');
-            document.body.style.overflow = ''; // החזרת אפשרות הגלילה לרקע
+            document.body.style.overflow = ''; 
             setTimeout(() => {
                 modal.style.display = 'none';
                 modal.style.display = ''; 
             }, 300);
         }
 
-        // סגירת המודאל בלחיצה מחוץ לתמונה
+        // סגירה בלחיצה על הרקע הכהה מסביב ליומן
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 closeModal(event.target.id);

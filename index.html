@@ -14,17 +14,21 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        /* הגדרות לתמונת הרקע */
         .main-container {
             position: relative;
+            width: 100%; /* תופס את כל רוחב המסך במחשב */
+            max-width: 1200px; /* הגבלת רוחב מקסימלי כדי שלא יימרח מדי במסכי ענק */
+            margin: 0 auto;
         }
 
-        /* שימוש בגודל המקורי של התמונה כדי שהקואורדינטות של המפה יעבדו במדויק */
+        /* תמונת הרקע מתאימה את עצמה לרוחב */
         #bg-image {
+            width: 100%;
+            height: auto;
             display: block;
-            margin: 0 auto;
         }
 
         area {
@@ -33,39 +37,43 @@
 
         /* הגדרות לחלון הקופץ (Modal) */
         .modal {
-            display: none; /* מוסתר כברירת מחדל */
+            display: none;
             position: fixed;
             z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.85); /* רקע כהה חצי שקוף */
-            justify-content: center;
-            align-items: center;
+            background-color: rgba(0, 0, 0, 0.85);
             opacity: 0;
             transition: opacity 0.3s ease;
+            overflow-y: auto; /* מאפשר גלילה אם התמונה ארוכה מהמסך */
         }
 
         /* כשהמודאל פעיל */
         .modal.show {
             display: flex;
             opacity: 1;
+            align-items: flex-start; /* מתחיל מלמעלה כדי לאפשר גלילה נוחה בנייד */
+            justify-content: center;
+            padding-top: 5vh; /* מרווח קטן מלמעלה */
+            padding-bottom: 5vh;
         }
 
         /* תוכן המודאל - התמונה הגדולה */
         .modal-content {
             position: relative;
-            max-width: 90%;
-            max-height: 90vh;
+            width: 95%;
+            max-width: 800px;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: auto;
         }
 
         .modal-content img {
-            max-width: 100%;
-            max-height: 90vh;
+            width: 100%;
+            height: auto; /* מאפשר לתמונה לגדול בהתאם לרוחב ולשמור על פרופורציות */
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
@@ -73,19 +81,37 @@
         /* כפתור סגירה */
         .close-btn {
             position: absolute;
-            top: -40px;
+            top: -45px;
             right: 0;
             color: #fff;
-            font-size: 35px;
+            font-size: 40px;
             font-weight: bold;
             cursor: pointer;
             background: none;
             border: none;
             transition: color 0.3s;
+            z-index: 1001;
         }
 
         .close-btn:hover {
             color: #ff4c4c;
+        }
+
+        /* התאמות ספציפיות למחשב (מסכים רחבים) */
+        @media (min-width: 768px) {
+            .modal.show {
+                align-items: center;
+                padding-top: 0;
+            }
+            .modal-content img {
+                width: auto;
+                max-width: 100%;
+                max-height: 90vh; /* במחשב נשמור את התמונה בתוך גבולות המסך */
+            }
+            .close-btn {
+                top: -30px;
+                right: -30px;
+            }
         }
     </style>
 </head>
@@ -94,13 +120,13 @@
     <div class="main-container">
         <img src="https://i.ibb.co/fznSfYzs/Whats-App-Image-2026-03-15-at-17-55-25-1.jpg" alt="Background" usemap="#diary-map" id="bg-image">
 
-        <map name="diary-map">
-            <area target="" alt="יומן 1 - חלק א" title="יומן 1" href="javascript:void(0);" coords="363,82,341,124,464,181,486,132" shape="poly" onclick="openModal('modal1')">
-            <area target="" alt="יומן 1 - חלק ב" title="יומן 1" href="javascript:void(0);" coords="410,153,390,193,444,217,464,179" shape="poly" onclick="openModal('modal1')">
+        <map name="diary-map" id="diary-map">
+            <area target="" alt="יומן 1 - חלק א" title="יומן 1" href="javascript:void(0);" data-coords="363,82,341,124,464,181,486,132" coords="363,82,341,124,464,181,486,132" shape="poly" onclick="openModal('modal1')">
+            <area target="" alt="יומן 1 - חלק ב" title="יומן 1" href="javascript:void(0);" data-coords="410,153,390,193,444,217,464,179" coords="410,153,390,193,444,217,464,179" shape="poly" onclick="openModal('modal1')">
             
-            <area target="" alt="יומן 2" title="יומן 2" href="javascript:void(0);" coords="184,58,151,1,14,0,1,14,7,28,0,82,82,124,108,121,169,79,168,81" shape="poly" onclick="openModal('modal2')">
+            <area target="" alt="יומן 2" title="יומן 2" href="javascript:void(0);" data-coords="184,58,151,1,14,0,1,14,7,28,0,82,82,124,108,121,169,79,168,81" coords="184,58,151,1,14,0,1,14,7,28,0,82,82,124,108,121,169,79,168,81" shape="poly" onclick="openModal('modal2')">
             
-            <area target="" alt="יומן 3" title="יומן 3" href="javascript:void(0);" coords="36,155,126,125,148,140,173,238,159,261,67,278" shape="poly" onclick="openModal('modal3')">
+            <area target="" alt="יומן 3" title="יומן 3" href="javascript:void(0);" data-coords="36,155,126,125,148,140,173,238,159,261,67,278" coords="36,155,126,125,148,140,173,238,159,261,67,278" shape="poly" onclick="openModal('modal3')">
         </map>
     </div>
 
@@ -126,25 +152,56 @@
     </div>
 
     <script>
-        // פונקציה לפתיחת מודאל מסוים
+        // --- מערכת התאמת מפת התמונה למסכים שונים ---
+        function resizeImageMap() {
+            const img = document.getElementById('bg-image');
+            const areas = document.querySelectorAll('map[name="diary-map"] area');
+            
+            // הרוחב והגובה המקוריים של התמונה כפי שהועלתה
+            const originalWidth = 502; 
+            const originalHeight = 312;
+
+            if (!img.clientWidth) return;
+
+            // חישוב יחס ההקטנה/הגדלה הנוכחי
+            const scaleX = img.clientWidth / originalWidth;
+            const scaleY = img.clientHeight / originalHeight;
+
+            areas.forEach(area => {
+                const originalCoords = area.getAttribute('data-coords').split(',');
+                const newCoords = originalCoords.map((coord, index) => {
+                    // קואורדינטות זוגיות הן X, אי-זוגיות הן Y
+                    return Math.round(coord * (index % 2 === 0 ? scaleX : scaleY));
+                });
+                area.setAttribute('coords', newCoords.join(','));
+            });
+        }
+
+        // הפעלת הפונקציה בטעינה ובכל שינוי של גודל החלון
+        window.addEventListener('resize', resizeImageMap);
+        window.addEventListener('load', resizeImageMap);
+        // טיפול במקרה שהתמונה נטענת אחרי ה-DOM
+        document.getElementById('bg-image').onload = resizeImageMap;
+
+
+        // --- מערכת החלונות הקופצים (Modals) ---
         function openModal(modalId) {
             const modal = document.getElementById(modalId);
             modal.classList.add('show');
+            document.body.style.overflow = 'hidden'; // מונע גלילה של רקע האתר כשמודאל פתוח
         }
 
-        // פונקציה לסגירת מודאל מסוים
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
             modal.classList.remove('show');
-            // Timeout קטן כדי לאפשר לאנימציית ה-fade לסיים לפני שהתצוגה נעלמת לגמרי
+            document.body.style.overflow = ''; // החזרת אפשרות הגלילה לרקע
             setTimeout(() => {
                 modal.style.display = 'none';
-                // איפוס ה-display כדי שבפעם הבאה ה-class יוכל לטפל בו
                 modal.style.display = ''; 
             }, 300);
         }
 
-        // סגירת המודאל גם בלחיצה מחוץ לתמונה (על הרקע השחור)
+        // סגירת המודאל בלחיצה מחוץ לתמונה
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 closeModal(event.target.id);

@@ -5,7 +5,7 @@ One script, delivered three ways.
 | # | Format | Where it lives |
 |---|--------|----------------|
 | 1 | **Coded website** (interactive deck) | [`index.html`](index.html) — served at the repo root |
-| 2 | **Gamma AI deck** | https://gamma.app/docs/duowyjpqop7mtq4 |
+| 2 | **Gamma AI deck** | https://gamma.app/docs/9mwxuszm4zoq1ci |
 | 3 | **PowerPoint** (`.pptx`) | [`presentations/powerpoint/`](presentations/powerpoint/) |
 
 ## 1. Coded website
@@ -21,7 +21,14 @@ Open it in any browser or serve it with GitHub Pages.
 ## 2. Gamma
 
 Generated through Gamma's AI with the full script preserved, 16:9, Nebulae theme,
-AI-generated abstract imagery. Seven cards: four content slides, two quiz cards, answer key.
+AI-generated abstract imagery. Seven cards: a title card, four content slides, and two
+quiz cards carrying the same questionnaire as the website.
+
+The quiz cards are deliberately **unanswered** — every option A–D is styled identically,
+nothing is bolded, coloured or ticked, and the deck contains no answer key, so it can be
+put in front of an audience. The answers live in this repo only (`index.html`, under
+the quiz slide's speaker-notes panel) and in the PowerPoint's notes.
+
 Edit it further in the Gamma editor; exports to PPTX/PDF from there.
 
 ## 3. PowerPoint

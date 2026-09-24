@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אתר היומנים</title>
+    <style>
+        /* Base Reset */
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        .main-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Background Image */
+        #bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            display: block;
+            image-rendering: high-quality; 
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        area {
+            cursor: pointer;
+        }
+
+        /* --- Modal (Popup) Settings --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.92);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow-y: auto; /* Enables vertical scrolling */
+        }
+
+        .modal.show {
+            display: flex;
+            opacity: 1;
+            align-items: flex-start; /* Always start at the top so we can scroll down */
+            justify-content: center;
+        }
+
+        /* Modal Content Base */
+        .modal-content {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin: auto;
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: auto;
+            border-radius: 0;
+        }
+
+        /* Fixed Close Button */
+        .close-btn {
+            position: fixed;
+            top: 15px;
+            right: 25px;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 40px;
+            line-height: 45px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid #fff;
+            transition: background-color 0.3s, color 0.3s, transform 0.2s;
+            z-index: 1001;
+            padding: 0;
+        }
+
+        .close-btn:hover {
+            background-color: #ff4c4c;
+            color: #fff;
+            border-color: #ff4c4c;
+            transform: scale(1.1);
+        }
+
+        /* --- Responsive Adjustments --- */
+        
+        /* PC (Wide screens) */
+        @media (min-width: 768px) {
+            .modal.show {
+                padding: 50px 0; /* Breathing room at the top and bottom */
+            }
+            .modal-content {
+                width: 85vw; /* FORCE it to be 85% of the screen width */
+                max-width: 1200px;
+            }
+            .modal-content img {
+                width: 100%; /* Stretch image to fit the new wide container */
+                height: auto;
+                max-height: none; /* REMOVED height limit so it can grow wide */
+                border-radius: 8px; 
+                box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+            }
+        }
+
+        /* Mobile (Phones) */
+        @media (max-width: 767px) {
+            .modal.show {
+                padding-top: 0;
+            }
+            .modal-content {
+                width: 100%; /* 100% width on phones */
+            }
+            .main-container {
+                height: auto;
+                min-height: 100vh;
+            }
+            #bg-image {
+                height: auto; 
+                object-fit: contain;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <img src="https://i.ibb.co/fznSfYzs/Whats-App-Image-2026-03-15-at-17-55-25-1.jpg" alt="Background" usemap="#diary-map" id="bg-image">
+
+        <map name="diary-map" id="diary-map">
+            <area target="" alt="Diary 1" title="Diary 1" href="javascript:void(0);" data-coords="363,82,341,124,464,181,486,132" coords="363,82,341,124,464,181,486,132" shape="poly" onclick="openModal('modal1')">
+            <area target="" alt="Diary 1" title="Diary 1" href="javascript:void(0);" data-coords="410,153,390,193,444,217,464,179" coords="410,153,390,193,444,217,464,179" shape="poly" onclick="openModal('modal1')">
+            
+            <area target="" alt="Diary 2" title="Diary 2" href="javascript:void(0);" data-coords="184,58,151,1,14,0,1,14,7,28,0,82,82,124,108,121,169,79,168,81" coords="184,58,151,1,14,0,1,14,7,28,0,82,82,124,108,121,169,79,168,81" shape="poly" onclick="openModal('modal2')">
+            
+            <area target="" alt="Diary 3" title="Diary 3" href="javascript:void(0);" data-coords="36,155,126,125,148,140,173,238,159,261,67,278" coords="36,155,126,125,148,140,173,238,159,261,67,278" shape="poly" onclick="openModal('modal3')">
+        </map>
+    </div>
+
+    <div id="modal1" class="modal">
+        <button class="close-btn" onclick="closeModal('modal1')">&times;</button>
+        <div class="modal-content">
+            <img src="https://i.ibb.co/M5SpFXmb/Whats-App-Image-2026-03-17-at-12-17-00.jpg" alt="Opened Diary 1">
+        </div>
+    </div>
+
+    <div id="modal2" class="modal">
+        <button class="close-btn" onclick="closeModal('modal2')">&times;</button>
+        <div class="modal-content">
+            <img src="https://i.ibb.co/KxZKm7yk/Whats-App-Image-2026-03-17-at-12-16-59-1.jpg" alt="Opened Diary 2">
+        </div>
+    </div>
+
+    <div id="modal3" class="modal">
+        <button class="close-btn" onclick="closeModal('modal3')">&times;</button>
+        <div class="modal-content">
+            <img src="https://i.ibb.co/B5SRQS26/Whats-App-Image-2026-03-17-at-12-16-59.jpg" alt="Opened Diary 3">
+        </div>
+    </div>
+
+    <script>
+        // --- Dynamic Coordinate Calculation ---
+        function resizeImageMap() {
+            const img = document.getElementById('bg-image');
+            const areas = document.querySelectorAll('map[name="diary-map"] area');
+            
+            const originalWidth = 502; 
+            const originalHeight = 312;
+
+            if (!img.clientWidth || !img.clientHeight) return;
+
+            const scaleX = img.clientWidth / originalWidth;
+            const scaleY = img.clientHeight / originalHeight;
+
+            areas.forEach(area => {
+                const originalCoords = area.getAttribute('data-coords').split(',');
+                const newCoords = originalCoords.map((coord, index) => {
+                    return Math.round(coord * (index % 2 === 0 ? scaleX : scaleY));
+                });
+                area.setAttribute('coords', newCoords.join(','));
+            });
+        }
+
+        window.addEventListener('resize', resizeImageMap);
+        window.addEventListener('load', resizeImageMap);
+        document.getElementById('bg-image').onload = resizeImageMap;
+
+
+        // --- Modal System ---
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('show');
+            document.body.style.overflow = ''; 
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.style.display = ''; 
+            }, 300);
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                closeModal(event.target.id);
+            }
+        }
+    </script>
+</body>
+</html>

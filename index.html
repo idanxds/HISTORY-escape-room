@@ -1,233 +1,934 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>אתר היומנים</title>
-    <style>
-        /* Base Reset */
-        body, html {
-            margin: 0;
-            padding: 0;
-            background-color: #000;
-            width: 100%;
-            height: 100%;
-            overflow-x: hidden;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Understanding Artificial Intelligence</title>
+<meta name="description" content="A presentation on what AI is, how it learns, where it works, and where it fails — with a knowledge check quiz.">
+<style>
+  :root{
+    --bg:#070b16;
+    --bg-2:#0d1426;
+    --panel:rgba(255,255,255,.04);
+    --stroke:rgba(255,255,255,.10);
+    --stroke-soft:rgba(255,255,255,.06);
+    --ink:#eef2fb;
+    --ink-dim:#a8b3cc;
+    --ink-faint:#6b779a;
+    --accent:#5eead4;
+    --accent-2:#818cf8;
+    --warn:#fbbf24;
+    --bad:#fb7185;
+    --good:#4ade80;
+    --radius:16px;
+    --max:1180px;
+  }
 
-        .main-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
+  *{box-sizing:border-box;}
 
-        /* Background Image */
-        #bg-image {
-            width: 100%;
-            height: 100%;
-            object-fit: fill;
-            display: block;
-            image-rendering: high-quality; 
-            image-rendering: -webkit-optimize-contrast;
-        }
+  html,body{height:100%;}
 
-        area {
-            cursor: pointer;
-        }
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 700px at 12% -10%, rgba(129,140,248,.20), transparent 60%),
+      radial-gradient(900px 600px at 95% 110%, rgba(94,234,212,.14), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
 
-        /* --- Modal (Popup) Settings --- */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.92);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            overflow-y: auto; /* Enables vertical scrolling */
-        }
+  /* ---------- Chrome ---------- */
 
-        .modal.show {
-            display: flex;
-            opacity: 1;
-            align-items: flex-start; /* Always start at the top so we can scroll down */
-            justify-content: center;
-        }
+  header.topbar{
+    position:fixed;
+    top:0; left:0; right:0;
+    height:58px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:0 clamp(16px,4vw,40px);
+    background:rgba(7,11,22,.96);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--stroke-soft);
+    z-index:40;
+  }
 
-        /* Modal Content Base */
-        .modal-content {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            margin: auto;
-        }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:13px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    font-weight:600;
+    min-width:0;
+  }
 
-        .modal-content img {
-            width: 100%;
-            height: auto;
-            border-radius: 0;
-        }
+  .brand .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 14px var(--accent);
+    flex:none;
+  }
 
-        /* Fixed Close Button */
-        .close-btn {
-            position: fixed;
-            top: 15px;
-            right: 25px;
-            color: #fff;
-            background-color: rgba(0, 0, 0, 0.8);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 40px;
-            line-height: 45px;
-            text-align: center;
-            cursor: pointer;
-            border: 2px solid #fff;
-            transition: background-color 0.3s, color 0.3s, transform 0.2s;
-            z-index: 1001;
-            padding: 0;
-        }
+  .brand span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-        .close-btn:hover {
-            background-color: #ff4c4c;
-            color: #fff;
-            border-color: #ff4c4c;
-            transform: scale(1.1);
-        }
+  .controls{display:flex;align-items:center;gap:8px;flex:none;}
 
-        /* --- Responsive Adjustments --- */
-        
-        /* PC (Wide screens) */
-        @media (min-width: 768px) {
-            .modal.show {
-                padding: 50px 0; /* Breathing room at the top and bottom */
-            }
-            .modal-content {
-                width: 85vw; /* FORCE it to be 85% of the screen width */
-                max-width: 1200px;
-            }
-            .modal-content img {
-                width: 100%; /* Stretch image to fit the new wide container */
-                height: auto;
-                max-height: none; /* REMOVED height limit so it can grow wide */
-                border-radius: 8px; 
-                box-shadow: 0 8px 30px rgba(0,0,0,0.8);
-            }
-        }
+  button.ctl{
+    appearance:none;
+    border:1px solid var(--stroke);
+    background:var(--panel);
+    color:var(--ink-dim);
+    font:inherit;
+    font-size:12.5px;
+    font-weight:600;
+    letter-spacing:.02em;
+    padding:8px 13px;
+    border-radius:10px;
+    cursor:pointer;
+    transition:background .15s, color .15s, border-color .15s;
+  }
 
-        /* Mobile (Phones) */
-        @media (max-width: 767px) {
-            .modal.show {
-                padding-top: 0;
-            }
-            .modal-content {
-                width: 100%; /* 100% width on phones */
-            }
-            .main-container {
-                height: auto;
-                min-height: 100vh;
-            }
-            #bg-image {
-                height: auto; 
-                object-fit: contain;
-            }
-        }
-    </style>
+  button.ctl:hover{background:rgba(255,255,255,.09);color:var(--ink);}
+  button.ctl[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:rgba(94,234,212,.10);}
+  button.ctl:disabled{opacity:.35;cursor:default;}
+
+  /* ---------- Stage ---------- */
+
+  main.stage{
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:76px clamp(16px,4vw,40px) 92px;
+    overflow-y:auto;
+  }
+
+  section.slide{
+    display:none;
+    width:100%;
+    max-width:var(--max);
+    animation:rise .45s cubic-bezier(.2,.7,.3,1) both;
+  }
+
+  section.slide.active{display:block;}
+
+  @keyframes rise{
+    from{opacity:0;transform:translateY(18px);}
+    to{opacity:1;transform:none;}
+  }
+
+  .eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:9px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    background:rgba(94,234,212,.09);
+    border:1px solid rgba(94,234,212,.25);
+    padding:6px 13px;
+    border-radius:999px;
+    margin-bottom:22px;
+  }
+
+  h1{
+    font-size:clamp(2.1rem,5.4vw,3.9rem);
+    line-height:1.06;
+    letter-spacing:-.025em;
+    margin:0 0 14px;
+    font-weight:800;
+  }
+
+  h1 .accent{
+    background:linear-gradient(100deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  .lede{
+    font-size:clamp(1rem,1.9vw,1.2rem);
+    color:var(--ink-dim);
+    max-width:62ch;
+    line-height:1.6;
+    margin:0 0 34px;
+  }
+
+  /* ---------- Title slide ---------- */
+
+  .title-slide{text-align:center;}
+  .title-slide .lede{margin-inline:auto;}
+
+  .title-meta{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:10px;
+    margin-top:8px;
+  }
+
+  .chip{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-dim);
+    background:var(--panel);
+    border:1px solid var(--stroke);
+    border-radius:999px;
+    padding:7px 15px;
+  }
+
+  .hint{
+    margin-top:30px;
+    font-size:13px;
+    color:var(--ink-faint);
+  }
+
+  kbd{
+    font:inherit;
+    font-size:11.5px;
+    font-weight:700;
+    background:rgba(255,255,255,.08);
+    border:1px solid var(--stroke);
+    border-bottom-width:2px;
+    border-radius:6px;
+    padding:2px 7px;
+    color:var(--ink-dim);
+  }
+
+  /* ---------- Point cards ---------- */
+
+  .points{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(255px,1fr));
+    gap:16px;
+  }
+
+  .point{
+    position:relative;
+    background:linear-gradient(160deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+    border:1px solid var(--stroke);
+    border-radius:var(--radius);
+    padding:22px 22px 24px;
+    overflow:hidden;
+  }
+
+  .point::before{
+    content:"";
+    position:absolute;
+    inset:0 auto 0 0;
+    width:3px;
+    background:linear-gradient(to bottom,var(--accent),var(--accent-2));
+    opacity:.75;
+  }
+
+  .point .num{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.18em;
+    color:var(--ink-faint);
+    display:block;
+    margin-bottom:10px;
+  }
+
+  .point h3{
+    margin:0 0 9px;
+    font-size:1.06rem;
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+
+  .point p{
+    margin:0;
+    font-size:.95rem;
+    line-height:1.58;
+    color:var(--ink-dim);
+  }
+
+  /* contrast pair on slide 1 */
+  .versus{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(255px,1fr));
+    gap:16px;
+    margin-top:16px;
+  }
+
+  .versus .point.myth::before{background:linear-gradient(to bottom,var(--bad),var(--warn));}
+
+  /* ---------- Training loop diagram ---------- */
+
+  .loop{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    margin:0 0 20px;
+    padding:18px;
+    background:var(--panel);
+    border:1px solid var(--stroke);
+    border-radius:var(--radius);
+  }
+
+  .loop .step{
+    flex:1 1 130px;
+    text-align:center;
+    padding:13px 10px;
+    border-radius:11px;
+    background:rgba(129,140,248,.12);
+    border:1px solid rgba(129,140,248,.28);
+    font-size:.88rem;
+    font-weight:700;
+    letter-spacing:.01em;
+  }
+
+  .loop .arrow{color:var(--ink-faint);font-size:1.1rem;flex:none;}
+  .loop .step.last{background:rgba(94,234,212,.12);border-color:rgba(94,234,212,.3);}
+
+  /* ---------- Speaker notes ---------- */
+
+  .notes{
+    display:none;
+    margin-top:22px;
+    padding:20px 22px;
+    border-radius:var(--radius);
+    border:1px dashed rgba(251,191,36,.35);
+    background:rgba(251,191,36,.055);
+  }
+
+  body.show-notes .notes{display:block;}
+
+  .notes .label{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.17em;
+    text-transform:uppercase;
+    color:var(--warn);
+    margin-bottom:9px;
+  }
+
+  .notes p{
+    margin:0;
+    font-size:.95rem;
+    line-height:1.72;
+    color:#e5dcc4;
+  }
+
+  /* ---------- Quiz ---------- */
+
+  .quiz{display:grid;gap:16px;}
+
+  .q{
+    background:var(--panel);
+    border:1px solid var(--stroke);
+    border-radius:var(--radius);
+    padding:20px 22px 22px;
+  }
+
+  .q h3{
+    margin:0 0 15px;
+    font-size:1.02rem;
+    font-weight:700;
+    line-height:1.45;
+    display:flex;
+    gap:11px;
+  }
+
+  .q h3 .qnum{
+    flex:none;
+    width:26px;height:26px;
+    border-radius:8px;
+    background:rgba(129,140,248,.18);
+    border:1px solid rgba(129,140,248,.35);
+    color:#c7cbff;
+    font-size:.78rem;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .opts{display:grid;gap:8px;}
+
+  .opt{
+    display:flex;
+    align-items:flex-start;
+    gap:11px;
+    width:100%;
+    text-align:left;
+    font:inherit;
+    font-size:.93rem;
+    line-height:1.5;
+    color:var(--ink-dim);
+    background:rgba(255,255,255,.025);
+    border:1px solid var(--stroke-soft);
+    border-radius:11px;
+    padding:12px 14px;
+    cursor:pointer;
+    transition:background .15s,border-color .15s,color .15s;
+  }
+
+  .opt:hover:not(:disabled){background:rgba(255,255,255,.07);color:var(--ink);}
+  .opt:disabled{cursor:default;}
+
+  .opt .letter{
+    flex:none;
+    width:21px;height:21px;
+    border-radius:6px;
+    border:1px solid var(--stroke);
+    font-size:.72rem;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--ink-faint);
+    margin-top:1px;
+  }
+
+  .opt.correct{
+    background:rgba(74,222,128,.13);
+    border-color:rgba(74,222,128,.45);
+    color:#d6f7e0;
+  }
+  .opt.correct .letter{border-color:rgba(74,222,128,.55);color:var(--good);}
+
+  .opt.wrong{
+    background:rgba(251,113,133,.12);
+    border-color:rgba(251,113,133,.42);
+    color:#fbdbe1;
+  }
+  .opt.wrong .letter{border-color:rgba(251,113,133,.5);color:var(--bad);}
+
+  .verdict{
+    margin:13px 0 0;
+    font-size:.88rem;
+    font-weight:600;
+    color:var(--ink-faint);
+    min-height:1.2em;
+  }
+  .verdict.ok{color:var(--good);}
+  .verdict.no{color:var(--bad);}
+
+  .score{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:18px 22px;
+    border-radius:var(--radius);
+    background:linear-gradient(120deg, rgba(94,234,212,.10), rgba(129,140,248,.10));
+    border:1px solid var(--stroke);
+  }
+
+  .score .tally{font-size:1.02rem;font-weight:700;}
+  .score .tally b{color:var(--accent);font-size:1.3rem;}
+
+  /* ---------- Footer nav ---------- */
+
+  footer.navbar{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    height:78px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:0 clamp(16px,4vw,40px);
+    background:rgba(7,11,22,.96);
+    backdrop-filter:blur(10px);
+    border-top:1px solid var(--stroke-soft);
+    z-index:40;
+  }
+
+  .dots{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+  .dots button{
+    width:9px;height:9px;
+    padding:0;
+    border-radius:50%;
+    border:1px solid var(--stroke);
+    background:rgba(255,255,255,.12);
+    cursor:pointer;
+    transition:width .2s,background .2s;
+  }
+
+  .dots button[aria-current="true"]{
+    width:26px;
+    border-radius:999px;
+    background:var(--accent);
+    border-color:var(--accent);
+  }
+
+  .counter{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-faint);
+    font-variant-numeric:tabular-nums;
+    flex:none;
+  }
+
+  .progress{
+    position:fixed;
+    top:0;left:0;
+    height:2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    z-index:50;
+    transition:width .35s cubic-bezier(.2,.7,.3,1);
+  }
+
+  @media (max-width:720px){
+    main.stage{padding:70px 16px 96px;}
+    .loop .arrow{display:none;}
+    .loop .step{flex-basis:100%;}
+    .brand span{display:none;}
+    footer.navbar{height:70px;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    section.slide{animation:none;}
+    .progress{transition:none;}
+  }
+</style>
 </head>
 <body>
 
-    <div class="main-container">
-        <img src="https://i.ibb.co/fznSfYzs/Whats-App-Image-2026-03-15-at-17-55-25-1.jpg" alt="Background" usemap="#diary-map" id="bg-image">
+<div class="progress" id="progress" style="width:0"></div>
 
-        <map name="diary-map" id="diary-map">
-            <area target="" alt="Diary 1" title="Diary 1" href="javascript:void(0);" data-coords="363,82,341,124,464,181,486,132" coords="363,82,341,124,464,181,486,132" shape="poly" onclick="openModal('modal1')">
-            <area target="" alt="Diary 1" title="Diary 1" href="javascript:void(0);" data-coords="410,153,390,193,444,217,464,179" coords="410,153,390,193,444,217,464,179" shape="poly" onclick="openModal('modal1')">
-            
-            <area target="" alt="Diary 2" title="Diary 2" href="javascript:void(0);" data-coords="184,58,151,1,14,0,1,14,7,28,0,82,82,124,108,121,169,79,168,81" coords="184,58,151,1,14,0,1,14,7,28,0,82,82,124,108,121,169,79,168,81" shape="poly" onclick="openModal('modal2')">
-            
-            <area target="" alt="Diary 3" title="Diary 3" href="javascript:void(0);" data-coords="36,155,126,125,148,140,173,238,159,261,67,278" coords="36,155,126,125,148,140,173,238,159,261,67,278" shape="poly" onclick="openModal('modal3')">
-        </map>
+<header class="topbar">
+  <div class="brand"><i class="dot"></i><span>Understanding Artificial Intelligence</span></div>
+  <div class="controls">
+    <button class="ctl" id="notesBtn" aria-pressed="false" title="Toggle speaker notes (N)">Speaker notes</button>
+    <button class="ctl" id="fsBtn" title="Toggle fullscreen (F)">Fullscreen</button>
+  </div>
+</header>
+
+<main class="stage" id="stage">
+
+  <!-- 0 — Title -->
+  <section class="slide title-slide active" data-title="Title">
+    <div class="eyebrow">Presentation</div>
+    <h1>Understanding <span class="accent">Artificial Intelligence</span></h1>
+    <p class="lede">What it actually is, how it learns, where it already works, and where it genuinely fails — followed by a four-question knowledge check.</p>
+    <div class="title-meta">
+      <span class="chip">4 content slides</span>
+      <span class="chip">Speaker script included</span>
+      <span class="chip">Interactive quiz</span>
+    </div>
+    <p class="hint">Navigate with <kbd>←</kbd> <kbd>→</kbd> · speaker notes with <kbd>N</kbd> · fullscreen with <kbd>F</kbd></p>
+  </section>
+
+  <!-- 1 -->
+  <section class="slide" data-title="What AI Is">
+    <div class="eyebrow">Slide 1</div>
+    <h1>What AI Actually Is <span class="accent">(and What It Isn't)</span></h1>
+    <p class="lede">Strip away the science fiction and you are left with something far more practical: pattern recognition at a scale no human could match.</p>
+
+    <div class="versus">
+      <article class="point myth">
+        <span class="num">THE MYTH</span>
+        <h3>Sentient machines</h3>
+        <p>Talking robots and rogue supercomputers. Compelling cinema, but not what is running in production anywhere today.</p>
+      </article>
+      <article class="point">
+        <span class="num">THE REALITY</span>
+        <h3>Software that detects patterns at scale</h3>
+        <p>Not alive, not conscious. Advanced pattern recognition applied to enormous volumes of data.</p>
+      </article>
     </div>
 
-    <div id="modal1" class="modal">
-        <button class="close-btn" onclick="closeModal('modal1')">&times;</button>
-        <div class="modal-content">
-            <img src="https://i.ibb.co/M5SpFXmb/Whats-App-Image-2026-03-17-at-12-17-00.jpg" alt="Opened Diary 1">
-        </div>
+    <div class="versus">
+      <article class="point myth">
+        <span class="num">TRADITIONAL SOFTWARE</span>
+        <h3>Rigid, rule-based instructions</h3>
+        <p>Every rule is written in advance by a human. Hit an unexpected situation and the program gets stuck.</p>
+      </article>
+      <article class="point">
+        <span class="num">ARTIFICIAL INTELLIGENCE</span>
+        <h3>Adaptive models trained on examples</h3>
+        <p>Show it enough pictures of stop signs and it learns to recognize one in a blinding storm — no rule written for that storm.</p>
+      </article>
     </div>
 
-    <div id="modal2" class="modal">
-        <button class="close-btn" onclick="closeModal('modal2')">&times;</button>
-        <div class="modal-content">
-            <img src="https://i.ibb.co/KxZKm7yk/Whats-App-Image-2026-03-17-at-12-16-59-1.jpg" alt="Opened Diary 2">
-        </div>
+    <div class="notes">
+      <span class="label">Speaker script</span>
+      <p>"When most people hear 'artificial intelligence,' they picture talking robots or rogue supercomputers. The reality is much simpler, and a lot more practical. Traditional software works like a strict recipe. A programmer writes every single rule in advance. If the computer hits an unexpected situation, it gets stuck. AI flips that model. Instead of writing rules, we feed the software massive amounts of examples and let it spot the patterns on its own. Show it enough pictures of stop signs, and it learns to recognize one in a blinding storm. It isn't alive, and it isn't conscious. It is advanced pattern recognition at massive scale."</p>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide" data-title="How AI Learns">
+    <div class="eyebrow">Slide 2</div>
+    <h1>How AI <span class="accent">Actually Learns</span></h1>
+    <p class="lede">No biology textbook, no fur-density formula. Just a guess, a correction, and a very large number of repetitions.</p>
+
+    <div class="loop">
+      <div class="step">Input</div><span class="arrow">→</span>
+      <div class="step">Guess</div><span class="arrow">→</span>
+      <div class="step">Error feedback</div><span class="arrow">→</span>
+      <div class="step last">Parameter adjustment</div>
     </div>
 
-    <div id="modal3" class="modal">
-        <button class="close-btn" onclick="closeModal('modal3')">&times;</button>
-        <div class="modal-content">
-            <img src="https://i.ibb.co/B5SRQS26/Whats-App-Image-2026-03-17-at-12-16-59.jpg" alt="Opened Diary 3">
-        </div>
+    <div class="points">
+      <article class="point">
+        <span class="num">01 · PATTERN LEARNING</span>
+        <h3>Like a child naming animals</h3>
+        <p>Point at a golden retriever: "dog." Point at a cat: "not a dog." Over time the common traits emerge on their own.</p>
+      </article>
+      <article class="point">
+        <span class="num">02 · SCALE &amp; REPETITION</span>
+        <h3>Billions of trial-and-error cycles</h3>
+        <p>Run the loop billions of times across millions of examples and random guesses sharpen into accurate predictions.</p>
+      </article>
+      <article class="point">
+        <span class="num">03 · CORE DEPENDENCY</span>
+        <h3>Only as capable as its data</h3>
+        <p>Data is the textbook, repetition is the teacher. Without good data, the system cannot learn a thing.</p>
+      </article>
     </div>
 
-    <script>
-        // --- Dynamic Coordinate Calculation ---
-        function resizeImageMap() {
-            const img = document.getElementById('bg-image');
-            const areas = document.querySelectorAll('map[name="diary-map"] area');
-            
-            const originalWidth = 502; 
-            const originalHeight = 312;
+    <div class="notes">
+      <span class="label">Speaker script</span>
+      <p>"How does software actually learn without explicit instructions? Think about how a child learns what a dog looks like. You don't give a toddler a biology textbook with fur density formulas. You point at a golden retriever and say 'dog.' You point at a cat and say 'not a dog.' Over time, their brain figures out the common traits. AI trains the exact same way through rapid trial and error. The computer makes a wild guess, checks how far off it was, adjusts its internal dials, and tries again. Run that cycle billions of times across millions of examples, and random guesses turn into sharp predictions. Data is the textbook, and repetition is the teacher. Without good data, the system cannot learn a thing."</p>
+    </div>
+  </section>
 
-            if (!img.clientWidth || !img.clientHeight) return;
+  <!-- 3 -->
+  <section class="slide" data-title="Where AI Works">
+    <div class="eyebrow">Slide 3</div>
+    <h1>Where AI <span class="accent">Actually Works Today</span></h1>
+    <p class="lede">Because it sounds futuristic, we miss how much of the ordinary day it already runs.</p>
 
-            const scaleX = img.clientWidth / originalWidth;
-            const scaleY = img.clientHeight / originalHeight;
+    <div class="points">
+      <article class="point">
+        <span class="num">HEALTHCARE</span>
+        <h3>Diagnostic imaging support</h3>
+        <p>Scans medical imaging for early abnormalities that human eyes might miss at the end of a long shift.</p>
+      </article>
+      <article class="point">
+        <span class="num">DAILY CONSUMER TOOLS</span>
+        <h3>In your pocket already</h3>
+        <p>Predictive navigation around sudden accidents, real-time language translation, and billions of spam emails blocked.</p>
+      </article>
+      <article class="point">
+        <span class="num">BUSINESS OPERATIONS</span>
+        <h3>Working behind the scenes</h3>
+        <p>Fraud detection before a charge goes through, warehouse and logistics automation, first drafts of computer code.</p>
+      </article>
+      <article class="point">
+        <span class="num">PRACTICAL ROLE</span>
+        <h3>Augmenting, not replacing</h3>
+        <p>It handles the heavy, repetitive analysis so people can make faster, better decisions — rarely replacing whole teams on its own.</p>
+      </article>
+    </div>
 
-            areas.forEach(area => {
-                const originalCoords = area.getAttribute('data-coords').split(',');
-                const newCoords = originalCoords.map((coord, index) => {
-                    return Math.round(coord * (index % 2 === 0 ? scaleX : scaleY));
-                });
-                area.setAttribute('coords', newCoords.join(','));
-            });
-        }
+    <div class="notes">
+      <span class="label">Speaker script</span>
+      <p>"Because AI sounds futuristic, we often miss how much it already runs our daily routines. In healthcare, algorithms scan medical imaging to catch early signs of illness that human eyes might miss during a long shift. In our pockets, it routes our morning commute around sudden accidents, blocks billions of spam emails, and translates languages in real time. Behind the scenes, it manages warehouse inventory, detects credit card fraud before a charge goes through, and writes first drafts of computer code. It is rarely replacing entire human jobs on its own. Instead, it handles heavy, repetitive analysis so people can make faster, better decisions."</p>
+    </div>
+  </section>
 
-        window.addEventListener('resize', resizeImageMap);
-        window.addEventListener('load', resizeImageMap);
-        document.getElementById('bg-image').onload = resizeImageMap;
+  <!-- 4 -->
+  <section class="slide" data-title="Limitations &amp; Risks">
+    <div class="eyebrow">Slide 4</div>
+    <h1>Real <span class="accent">Limitations and Risks</span></h1>
+    <p class="lede">An exceptional calculator, not an infallible authority. Every blind spot below needs a human watching it.</p>
 
+    <div class="points">
+      <article class="point myth">
+        <span class="num">01 · NO TRUE COMPREHENSION</span>
+        <h3>Fluent output, zero common sense</h3>
+        <p>It can produce a smooth paragraph or flag an image without understanding a single thing about what it means.</p>
+      </article>
+      <article class="point myth">
+        <span class="num">02 · HALLUCINATIONS</span>
+        <h3>Confidently wrong</h3>
+        <p>When it errs, it rarely signals doubt. It delivers completely false information with absolute confidence.</p>
+      </article>
+      <article class="point myth">
+        <span class="num">03 · ALGORITHMIC BIAS</span>
+        <h3>Prejudice, automated at scale</h3>
+        <p>Biased hiring records or loan approvals get absorbed and amplified. Garbage in, garbage out.</p>
+      </article>
+      <article class="point myth">
+        <span class="num">04 · ACCOUNTABILITY GAP</span>
+        <h3>Who takes the blame?</h3>
+        <p>When a system makes a costly mistake, responsibility is unclear. Human oversight and ethical boundaries are not optional.</p>
+      </article>
+    </div>
 
-        // --- Modal System ---
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden'; 
-        }
+    <div class="notes">
+      <span class="label">Speaker script</span>
+      <p>"For all its power, artificial intelligence has very real blind spots. First, it does not actually understand meaning. A system can generate a smooth paragraph or flag an image, but it possesses zero common sense. When it makes an error, it rarely flags doubt. It delivers completely false information with absolute confidence. Second, AI mirrors the data we give it. If past hiring records or loan approvals contain human biases, the software absorbs those prejudices and automates them at scale. Garbage in, garbage out. Finally, there is the question of accountability. When a system makes a costly mistake, who takes the blame? AI is an exceptional calculator, not an infallible authority. It requires constant human judgment to verify its work and set its boundaries."</p>
+    </div>
+  </section>
 
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.remove('show');
-            document.body.style.overflow = ''; 
-            setTimeout(() => {
-                modal.style.display = 'none';
-                modal.style.display = ''; 
-            }, 300);
-        }
+  <!-- 5 — Quiz -->
+  <section class="slide" data-title="Knowledge Check">
+    <div class="eyebrow">Knowledge check</div>
+    <h1>AI Fundamentals <span class="accent">Quiz</span></h1>
+    <p class="lede">Four questions. Pick an answer to see whether it lands — the correct option is revealed either way.</p>
 
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                closeModal(event.target.id);
-            }
-        }
-    </script>
+    <div class="quiz" id="quiz"></div>
+
+    <div class="score" style="margin-top:16px">
+      <div class="tally">Score: <b id="scoreNum">0</b> <span style="color:var(--ink-faint);font-weight:600">/ 4</span></div>
+      <button class="ctl" id="resetQuiz">Reset quiz</button>
+    </div>
+
+    <div class="notes">
+      <span class="label">Answer key</span>
+      <p>Question 1: B · Question 2: B · Question 3: C · Question 4: B</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="navbar">
+  <button class="ctl" id="prevBtn">← Previous</button>
+  <div class="dots" id="dots"></div>
+  <span class="counter" id="counter">1 / 6</span>
+  <button class="ctl" id="nextBtn">Next →</button>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Quiz data ---------- */
+
+  var QUESTIONS = [
+    {
+      q: "How does artificial intelligence fundamentally differ from traditional software?",
+      opts: [
+        "Traditional software is conscious, while AI is not",
+        "Traditional software follows rigid, pre-written rules, while AI finds patterns from examples",
+        "AI runs without computer hardware",
+        "Traditional software relies entirely on trial and error"
+      ],
+      answer: 1
+    },
+    {
+      q: "What drives the learning process behind most modern AI systems?",
+      opts: [
+        "Memorizing a strict list of exceptions written by a single programmer",
+        "Rapid cycles of guessing, feedback, and adjustment using large datasets",
+        "Independent thinking and self-awareness",
+        "Copying human emotions directly from video feeds"
+      ],
+      answer: 1
+    },
+    {
+      q: "How is AI primarily used in fields like healthcare and navigation today?",
+      opts: [
+        "Replacing entire human teams and taking full legal responsibility",
+        "Writing government policy without human review",
+        "Handling heavy, repetitive data analysis so people can make faster decisions",
+        "Operating solely as physical humanoid robots"
+      ],
+      answer: 2
+    },
+    {
+      q: "Why can an AI system produce biased or discriminatory results?",
+      opts: [
+        "The machine develops personal opinions as it gets older",
+        "It learns from historical data that already contains human prejudices",
+        "Programmers deliberately code flaws to prevent it from becoming too smart",
+        "It lacks access to internet connections"
+      ],
+      answer: 1
+    }
+  ];
+
+  var LETTERS = ["A","B","C","D"];
+
+  /* ---------- Deck navigation ---------- */
+
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var dotsWrap = document.getElementById("dots");
+  var counter = document.getElementById("counter");
+  var progress = document.getElementById("progress");
+  var prevBtn = document.getElementById("prevBtn");
+  var nextBtn = document.getElementById("nextBtn");
+  var stage = document.getElementById("stage");
+  var index = 0;
+
+  slides.forEach(function(s, i){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-label", "Go to slide " + (i + 1) + ": " + (s.dataset.title || ""));
+    b.addEventListener("click", function(){ go(i); });
+    dotsWrap.appendChild(b);
+  });
+
+  var dots = Array.prototype.slice.call(dotsWrap.children);
+
+  function go(n){
+    index = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, i){ s.classList.toggle("active", i === index); });
+    dots.forEach(function(d, i){ d.setAttribute("aria-current", i === index ? "true" : "false"); });
+    counter.textContent = (index + 1) + " / " + slides.length;
+    progress.style.width = ((index + 1) / slides.length * 100) + "%";
+    prevBtn.disabled = index === 0;
+    nextBtn.disabled = index === slides.length - 1;
+    stage.scrollTop = 0;
+    try { history.replaceState(null, "", "#" + (index + 1)); } catch (e) {}
+  }
+
+  prevBtn.addEventListener("click", function(){ go(index - 1); });
+  nextBtn.addEventListener("click", function(){ go(index + 1); });
+
+  document.addEventListener("keydown", function(e){
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var tag = (e.target.tagName || "").toLowerCase();
+    var typing = tag === "input" || tag === "textarea";
+
+    switch (e.key) {
+      case "ArrowRight":
+      case "PageDown":
+        go(index + 1); break;
+      case "ArrowLeft":
+      case "PageUp":
+        go(index - 1); break;
+      case " ":
+        if (typing || tag === "button") return;
+        e.preventDefault(); go(index + 1); break;
+      case "Home":
+        go(0); break;
+      case "End":
+        go(slides.length - 1); break;
+      case "n": case "N":
+        if (!typing) toggleNotes(); break;
+      case "f": case "F":
+        if (!typing) toggleFullscreen(); break;
+    }
+  });
+
+  /* touch swipe */
+  var touchX = null, touchY = null;
+  stage.addEventListener("touchstart", function(e){
+    touchX = e.changedTouches[0].clientX;
+    touchY = e.changedTouches[0].clientY;
+  }, {passive:true});
+
+  stage.addEventListener("touchend", function(e){
+    if (touchX === null) return;
+    var dx = e.changedTouches[0].clientX - touchX;
+    var dy = e.changedTouches[0].clientY - touchY;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) go(index + (dx < 0 ? 1 : -1));
+    touchX = touchY = null;
+  }, {passive:true});
+
+  /* ---------- Speaker notes ---------- */
+
+  var notesBtn = document.getElementById("notesBtn");
+
+  function toggleNotes(){
+    var on = document.body.classList.toggle("show-notes");
+    notesBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+
+  notesBtn.addEventListener("click", toggleNotes);
+
+  /* ---------- Fullscreen ---------- */
+
+  var fsBtn = document.getElementById("fsBtn");
+
+  function toggleFullscreen(){
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+
+  fsBtn.addEventListener("click", toggleFullscreen);
+
+  /* ---------- Quiz rendering ---------- */
+
+  var quizWrap = document.getElementById("quiz");
+  var scoreNum = document.getElementById("scoreNum");
+  var answered = [];
+  var score = 0;
+
+  function buildQuiz(){
+    quizWrap.innerHTML = "";
+    answered = [];
+    score = 0;
+    scoreNum.textContent = "0";
+
+    QUESTIONS.forEach(function(item, qi){
+      var card = document.createElement("div");
+      card.className = "q";
+
+      var h = document.createElement("h3");
+      h.innerHTML = '<span class="qnum">' + (qi + 1) + "</span>";
+      h.appendChild(document.createTextNode(item.q));
+      card.appendChild(h);
+
+      var opts = document.createElement("div");
+      opts.className = "opts";
+
+      item.opts.forEach(function(text, oi){
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "opt";
+        b.innerHTML = '<span class="letter">' + LETTERS[oi] + "</span>";
+        b.appendChild(document.createTextNode(text));
+        b.addEventListener("click", function(){ pick(qi, oi, opts, verdict); });
+        opts.appendChild(b);
+      });
+
+      card.appendChild(opts);
+
+      var verdict = document.createElement("p");
+      verdict.className = "verdict";
+      card.appendChild(verdict);
+
+      quizWrap.appendChild(card);
+    });
+  }
+
+  function pick(qi, oi, optsEl, verdictEl){
+    if (answered[qi]) return;
+    answered[qi] = true;
+
+    var correct = QUESTIONS[qi].answer;
+    var buttons = Array.prototype.slice.call(optsEl.children);
+
+    buttons.forEach(function(b, i){
+      b.disabled = true;
+      if (i === correct) b.classList.add("correct");
+      else if (i === oi) b.classList.add("wrong");
+    });
+
+    if (oi === correct) {
+      score++;
+      scoreNum.textContent = String(score);
+      verdictEl.textContent = "Correct — " + LETTERS[correct] + " is the answer.";
+      verdictEl.className = "verdict ok";
+    } else {
+      verdictEl.textContent = "Not quite. The correct answer is " + LETTERS[correct] + ".";
+      verdictEl.className = "verdict no";
+    }
+  }
+
+  document.getElementById("resetQuiz").addEventListener("click", buildQuiz);
+
+  /* ---------- Boot ---------- */
+
+  buildQuiz();
+
+  var fromHash = parseInt((location.hash || "").replace("#", ""), 10);
+  go(isNaN(fromHash) ? 0 : fromHash - 1);
+})();
+</script>
 </body>
 </html>

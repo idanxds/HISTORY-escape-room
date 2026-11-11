@@ -49,3 +49,9 @@ node build-deck.js
 The earlier Hebrew history escape-room page has been moved to
 [`archive/escape-room.html`](archive/escape-room.html). It is kept intact but is no longer
 the page this repository serves — the root `index.html` is now the AI presentation.
+
+## Also in this repo: בראשית: המשחק
+
+[`bereshit-game/`](bereshit-game/) is a separate project — a Kahoot-style classroom game on
+Genesis (Node + Socket.IO). Every verse is checked against the Hebrew text on 929.
+See [`bereshit-game/README.md`](bereshit-game/README.md) (Hebrew) to run it.

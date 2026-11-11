@@ -45,6 +45,8 @@ const R1_ROUNDS = 3;
 // ---------- state ----------
 const G = {
   phase: 'lobby',
+  seq: 0,
+  laterSeq: -1,
   endsAt: 0,
   dur: 0,
   timer: null,
@@ -59,6 +61,7 @@ const G = {
   r2: null,
   r3: null,
   r4: null,
+  trivia: [],
   qi: 0,
   q: null,
   joinUrl: '',
@@ -87,23 +90,30 @@ function makeBoard(topN = 5) {
 }
 
 // ---------- phase machine ----------
+// G.seq מתחלף בכל מעבר שלב. טיימר ששייך לשלב קודם לא יקדם את השלב הנוכחי,
+// גם אם לשניהם אותו שם (r1_name לכל חיה, r4_q לכל שאלה).
 function go(phase) {
   clearTimeout(G.timer);
+  G.seq++;
   G.phase = phase;
+  const seq = G.seq;
   const secs = TIMED[phase] || 0;
   G.dur = secs * 1000;
   G.endsAt = secs ? now() + G.dur : 0;
   if (secs) {
     G.timer = setTimeout(() => {
-      if (G.phase === phase) advance();
+      if (G.seq === seq) advance();
     }, G.dur + 150);
   }
   pushAll();
 }
 
 function later(phase, ms = 700) {
+  if (G.laterSeq === G.seq) return; // כבר תוזמן מעבר לשלב הזה
+  G.laterSeq = G.seq;
+  const seq = G.seq;
   setTimeout(() => {
-    if (G.phase === phase) advance();
+    if (G.seq === seq && G.phase === phase) advance();
   }, ms);
 }
 
@@ -155,6 +165,7 @@ function advance() {
       finishTower();
       return go('r4_scatter');
     case 'r4_scatter':
+      G.trivia = pickTrivia();
       G.qi = 0;
       return beginQ();
     case 'r4_q':
@@ -162,7 +173,7 @@ function advance() {
       return go('r4_reveal');
     case 'r4_reveal':
       G.qi++;
-      if (G.qi < C.TRIVIA.length) return beginQ();
+      if (G.qi < G.trivia.length) return beginQ();
       makeBoard(10);
       return go('final');
     case 'final':
@@ -269,9 +280,29 @@ function finishTower() {
   }
   makeBoard();
 }
+// כל משחק מגריל שאלות מתוך המאגר, מסדר אותן לפי סדר הפרקים בבראשית,
+// ומערבב את מקום התשובה הנכונה (אחרת היא תמיד באותה משבצת על המסך הגדול).
+function pickTrivia() {
+  const n = Math.min(C.TRIVIA_PER_GAME || 6, C.TRIVIA.length);
+  const used = new Set();
+  const picked = [];
+  for (const t of shuffle(C.TRIVIA)) {
+    if (picked.length >= n) break;
+    if (t.group && used.has(t.group)) continue; // לא שתי שאלות מאותה קבוצה
+    if (t.group) used.add(t.group);
+    picked.push(t);
+  }
+  return picked
+    .sort((a, b) => a.ch - b.ch || a.v - b.v)
+    .map((t) => {
+      const order = shuffle([0, 1, 2, 3]);
+      return { ...t, options: order.map((i) => t.options[i]), correct: order.indexOf(t.correct) };
+    });
+}
+const srcOf = (q) => ({ ch: q.ch, v: q.v, ref: q.ref, quote: q.quote, note: q.note || '' });
 const newQ = () => ({ perm: shuffle([0, 1, 2, 3]), ans: null, pts: 0, correct: false, at: 0 });
 function beginQ() {
-  G.q = C.TRIVIA[G.qi];
+  G.q = G.trivia[G.qi];
   G.qStats = [0, 0, 0, 0];
   for (const p of allPlayers()) p.q = newQ();
   go('r4_q');
@@ -341,11 +372,12 @@ function playerView(p) {
     }
     case 'r2_play':
     case 'r2_board':
-      v.r2 = { basket: p.r2.basket, state: p.r2.state, eaten: p.r2.eaten };
+      // מי שהצטרף בזמן לוח התוצאות לא שיחק בסבב: אין לו מצב, ולא קורסים בגללו
+      v.r2 = p.r2 ? { basket: p.r2.basket, state: p.r2.state, eaten: p.r2.eaten } : null;
       break;
     case 'r3_play':
     case 'r3_board':
-      v.r3 = { animal: p.r3.animal, state: p.r3.state, pts: p.r3.pts };
+      v.r3 = p.r3 ? { animal: p.r3.animal, state: p.r3.state, pts: p.r3.pts } : null;
       v.full = G.r3.pairs.length >= G.r3.cap;
       break;
     case 'r4_tower':
@@ -358,15 +390,26 @@ function playerView(p) {
       break;
     case 'r4_q':
       v.qn = G.qi + 1;
-      v.qtotal = C.TRIVIA.length;
+      v.qtotal = G.trivia.length;
       v.q = { text: G.q.q, options: p.q.perm.map((o) => G.q.options[o]) };
       v.ans = p.q.ans;
       break;
     case 'r4_reveal':
-      v.correctPos = p.q.perm.indexOf(G.q.correct);
-      v.ans = p.q.ans;
-      v.right = p.q.correct;
-      v.pts = p.q.correct ? p.q.pts : 0;
+      v.qn = G.qi + 1;
+      v.qtotal = G.trivia.length;
+      v.src = srcOf(G.q);
+      v.answer = G.q.options[G.q.correct];
+      if (p.q) {
+        v.correctPos = p.q.perm.indexOf(G.q.correct);
+        v.ans = p.q.ans;
+        v.right = p.q.correct;
+        v.pts = p.q.correct ? p.q.pts : 0;
+      } else {
+        v.ans = null; // הצטרף בזמן החשיפה
+      }
+      break;
+    case 'final':
+      v.top = G.board ? G.board.top.slice(0, 3) : [];
       break;
   }
   return v;
@@ -442,16 +485,17 @@ function hostView() {
       break;
     case 'r4_q':
       v.qn = G.qi + 1;
-      v.qtotal = C.TRIVIA.length;
+      v.qtotal = G.trivia.length;
       v.q = { text: G.q.q, options: G.q.options };
       v.answered = allPlayers().filter((p) => p.q && p.q.ans != null).length;
       break;
     case 'r4_reveal':
       v.qn = G.qi + 1;
-      v.qtotal = C.TRIVIA.length;
+      v.qtotal = G.trivia.length;
       v.q = { text: G.q.q, options: G.q.options };
       v.correct = G.q.correct;
       v.dist = G.qStats;
+      v.src = srcOf(G.q);
       break;
   }
   return v;
@@ -528,15 +572,22 @@ io.on('connection', (socket) => {
       p.socketId = socket.id;
       p.connected = true;
     } else {
-      const name = String(d.name || '').trim().slice(0, 14);
+      let name = String(d.name || '').replace(/\s+/g, ' ').trim().slice(0, 14);
       if (!name) return ack && ack({ ok: false });
+      // שני שחקנים עם אותו שם מבלבלים את הלוח: "נועה" השני הופך ל"נועה 2"
+      const taken = new Set(connected().map((x) => x.name));
+      if (taken.has(name)) {
+        let i = 2;
+        while (taken.has(`${name.slice(0, 11)} ${i}`)) i++;
+        name = `${name.slice(0, 11)} ${i}`;
+      }
       const token = crypto.randomUUID();
       p = { token, pid: G.nextPid++, name, avatar: nextAvatar(), score: 0, socketId: socket.id, connected: true, r2: null, r3: null, q: null, team: null, taps: 0 };
       G.players.set(token, p);
       G.byPid.set(p.pid, p);
     }
     socket.data.token = p.token;
-    ack && ack({ ok: true, token: p.token });
+    ack && ack({ ok: true, token: p.token, name: p.name });
     sendPlayer(p);
     touch();
   });

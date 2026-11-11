@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>בראשית: המשחק — מסך המארח</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="host theme-lobby">
+<div class="sky" aria-hidden="true"></div>
+<div class="rain" aria-hidden="true"></div>
+
+<div id="app">
+  <header class="bar">
+    <div class="logo">בְּרֵאשִׁית <small>המשחק</small></div>
+    <span id="roundChip" class="chip hidden"></span>
+    <div class="spacer"></div>
+    <span id="players" class="chip" title="שחקנים מחוברים">👥 0</span>
+    <div id="timer" class="timer hidden" style="--size:78px">
+      <svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="44"/><circle class="prog" cx="50" cy="50" r="44"/></svg>
+      <span></span>
+    </div>
+  </header>
+
+  <main id="stage"></main>
+
+  <footer class="ctrl">
+    <button id="next" class="btn">הבא</button>
+    <button id="full" class="btn ghost" title="מסך מלא (F)">⛶ מסך מלא</button>
+    <button id="mute" class="btn ghost" title="צלילים (M)">🔊</button>
+    <button id="restart" class="btn ghost">↺ משחק חדש</button>
+    <span class="hint">רווח / ← = הבא · F = מסך מלא · M = צלילים</span>
+  </footer>
+</div>
+
+<div id="conn" class="conn hidden">מתחבר לשרת…</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script src="fx.js"></script>
+<script src="host.js"></script>
+</body>
+</html>

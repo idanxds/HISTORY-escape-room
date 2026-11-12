@@ -38,7 +38,8 @@ const nextAvatar = () => {
 };
 
 const BOARD_PHASES = new Set(['r1_reveal', 'r2_board', 'r3_board', 'r4_scatter', 'r4_reveal', 'final']);
-const TIMED = { r1_name: 25, r1_vote: 15, r2_play: 30, r3_play: 30, r4_tower: 20, r4_q: 15 };
+const TIMED = { r1_name: 25, r1_vote: 15, r2_play: 30, r3_play: 30, r4_tower: 25, r4_q: 15 };
+const GARDEN = 9; // סבב 2: מספר העצים בגן של כל שחקן. אחד מהם — בהגרלה — הוא עץ הדעת
 const ARK_COUNT = 8;
 const R1_ROUNDS = 3;
 
@@ -191,7 +192,8 @@ function restart() {
     p.score = 0;
     p.r2 = p.r3 = p.q = null;
     p.team = null;
-    p.taps = 0;
+    p.hits = 0;
+    p.wrong = 0;
   }
   G.prevRanks = {};
   G.board = null;
@@ -224,7 +226,7 @@ function finishR1() {
 }
 
 // ---------- round 2: אכל ----------
-const newR2 = () => ({ basket: 0, bomb: rnd(3, 12), eaten: 0, state: 'playing' });
+const newR2 = () => ({ basket: 0, bomb: rnd(0, GARDEN - 1), picked: [], eaten: 0, state: 'playing' });
 function initR2() {
   G.r2 = {};
   for (const p of allPlayers()) p.r2 = newR2();
@@ -265,7 +267,8 @@ function initR4() {
   const counts = [0, 0];
   list.forEach((p, i) => {
     p.team = i % 2;
-    p.taps = 0;
+    p.hits = 0;
+    p.wrong = 0;
     p.lastTap = 0;
     counts[p.team]++;
   });
@@ -275,7 +278,8 @@ function finishTower() {
   const [a, b] = G.r4.bricks;
   G.r4.winner = a === b ? -1 : a > b ? 0 : 1;
   for (const p of allPlayers()) {
-    p.r4pts = Math.min(p.taps || 0, 100) * 4 + (p.team === G.r4.winner ? 300 : 0);
+    // 10 לכל פגיעה נכונה, פחות 10 לכל טעות, ובונוס 300 לצוות המנצח
+    p.r4pts = Math.max(0, Math.min(p.hits || 0, 100) - (p.wrong || 0)) * 10 + (p.team === G.r4.winner ? 300 : 0);
     p.score += p.r4pts;
   }
   makeBoard();
@@ -327,7 +331,8 @@ function ensure(p) {
     const c = G.r4.counts;
     p.team = c[0] <= c[1] ? 0 : 1;
     c[p.team]++;
-    p.taps = 0;
+    p.hits = 0;
+    p.wrong = 0;
   }
   if (G.phase === 'r4_q' && !p.q) p.q = newQ();
 }
@@ -359,7 +364,7 @@ function playerView(p) {
   switch (G.phase) {
     case 'r1_name':
       v.animal = G.r1.animal;
-      v.myText = G.r1.names.get(p.pid) || '';
+      v.sent = G.r1.names.has(p.pid); // הטלפון לא מציג את הטקסט, רק שנשלח
       break;
     case 'r1_vote':
       v.entries = G.r1.entries.map((e) => ({ i: e.i, text: e.text, mine: e.pid === p.pid }));
@@ -373,7 +378,10 @@ function playerView(p) {
     case 'r2_play':
     case 'r2_board':
       // מי שהצטרף בזמן לוח התוצאות לא שיחק בסבב: אין לו מצב, ולא קורסים בגללו
-      v.r2 = p.r2 ? { basket: p.r2.basket, state: p.r2.state, eaten: p.r2.eaten } : null;
+      v.r2 = p.r2
+        ? { basket: p.r2.basket, state: p.r2.state, eaten: p.r2.eaten, picked: p.r2.picked, size: GARDEN,
+            bomb: p.r2.state === 'playing' ? -1 : p.r2.bomb } // מיקום עץ הדעת נחשף רק בסוף
+        : null;
       break;
     case 'r3_play':
     case 'r3_board':
@@ -387,6 +395,8 @@ function playerView(p) {
       v.team = { idx: p.team, ...TEAMS[p.team] };
       v.winner = G.r4.winner;
       v.pts = p.r4pts || 0;
+      v.hits = p.hits || 0;
+      v.wrong = p.wrong || 0;
       break;
     case 'r4_q':
       v.qn = G.qi + 1;
@@ -582,7 +592,7 @@ io.on('connection', (socket) => {
         name = `${name.slice(0, 11)} ${i}`;
       }
       const token = crypto.randomUUID();
-      p = { token, pid: G.nextPid++, name, avatar: nextAvatar(), score: 0, socketId: socket.id, connected: true, r2: null, r3: null, q: null, team: null, taps: 0 };
+      p = { token, pid: G.nextPid++, name, avatar: nextAvatar(), score: 0, socketId: socket.id, connected: true, r2: null, r3: null, q: null, team: null, hits: 0, wrong: 0 };
       G.players.set(token, p);
       G.byPid.set(p.pid, p);
     }
@@ -606,12 +616,29 @@ io.on('connection', (socket) => {
     checkEarly();
   });
 
+  // שינוי שם: אותו שחקן, שם חדש. (בעבר: טעינה מחדש = שחקן חדש, והישן נשאר על המסך.)
+  socket.on('rename', (d, ack) => {
+    const p = me();
+    let name = String((d && d.name) || '').replace(/\s+/g, ' ').trim().slice(0, 14);
+    if (!p || !name) return ack && ack({ ok: false });
+    const taken = new Set(connected().filter((x) => x !== p).map((x) => x.name));
+    if (taken.has(name)) {
+      let i = 2;
+      while (taken.has(`${name.slice(0, 11)} ${i}`)) i++;
+      name = `${name.slice(0, 11)} ${i}`;
+    }
+    p.name = name;
+    ack && ack({ ok: true, name });
+    sendPlayer(p);
+    touch();
+  });
+
   // --- round 1
   socket.on('r1:name', (t) => {
     const p = me();
     if (!p || G.phase !== 'r1_name') return;
     t = String(t || '').trim().slice(0, 24);
-    if (!t) return;
+    if (!t || G.r1.names.has(p.pid)) return; // שולחים פעם אחת, בלי לשנות
     G.r1.names.set(p.pid, t);
     sendPlayer(p);
     touch();
@@ -629,19 +656,26 @@ io.on('connection', (socket) => {
   });
 
   // --- round 2
-  socket.on('r2:eat', () => {
+  socket.on('r2:eat', (idx) => {
     const p = me();
     if (!p || G.phase !== 'r2_play') return;
     ensure(p);
     const s = p.r2;
-    if (s.state !== 'playing') return;
-    s.eaten++;
-    if (s.eaten >= s.bomb) {
+    idx = Number(idx);
+    if (s.state !== 'playing' || !(idx >= 0 && idx < GARDEN) || s.picked.includes(idx)) return;
+    s.picked.push(idx);
+    if (idx === s.bomb) {
       s.state = 'out';
       s.basket = 0;
       p.score = Math.max(0, p.score - 100);
     } else {
+      s.eaten++;
       s.basket += 100;
+      if (s.eaten === GARDEN - 1) { // קטף מכל העצים הטובים — שומרים אוטומטית
+        p.score += s.basket;
+        s.basket = 0;
+        s.state = 'banked';
+      }
     }
     sendPlayer(p);
     touch();
@@ -697,17 +731,31 @@ io.on('connection', (socket) => {
   });
 
   // --- round 4
+  // האריחים נופלים לאט (לכל היותר ~4 בשנייה), אז אי אפשר לדווח יותר פגיעות מזה
+  const tileCap = (p) => {
+    const t = now();
+    const dt = Math.min(1, Math.max(0.05, (t - (p.lastTap || t - 100)) / 1000));
+    p.lastTap = t;
+    return Math.ceil(6 * dt);
+  };
   socket.on('r4:tap', (n) => {
     const p = me();
     if (!p || G.phase !== 'r4_tower') return;
     ensure(p);
-    const t = now();
-    const dt = Math.min(1, Math.max(0.05, (t - (p.lastTap || t - 100)) / 1000));
-    p.lastTap = t;
-    n = Math.min(Math.floor(Number(n) || 0), Math.ceil(14 * dt));
+    n = Math.min(Math.floor(Number(n) || 0), tileCap(p));
     if (n <= 0) return;
-    p.taps += n;
+    p.hits += n;
     G.r4.bricks[p.team] += n;
+    touch();
+  });
+  socket.on('r4:wrong', (n) => {
+    const p = me();
+    if (!p || G.phase !== 'r4_tower') return;
+    ensure(p);
+    n = Math.min(Math.floor(Number(n) || 0), tileCap(p));
+    if (n <= 0) return;
+    p.wrong += n;
+    G.r4.bricks[p.team] = Math.max(0, G.r4.bricks[p.team] - n); // טעות מורידה לבנה מהמגדל
     touch();
   });
   socket.on('r4:ans', (i) => {

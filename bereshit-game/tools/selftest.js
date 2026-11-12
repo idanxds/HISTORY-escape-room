@@ -89,7 +89,14 @@ function partA() {
   const groups = new Set(C.TRIVIA.map((t) => t.group || t.ref + t.q));
   ok(groups.size >= C.TRIVIA_PER_GAME, `אין מספיק קבוצות שונות (${groups.size}) ל-${C.TRIVIA_PER_GAME} שאלות במשחק`);
   info(`${C.TRIVIA.length} שאלות במאגר, ${C.TRIVIA_PER_GAME} בכל משחק`);
-  ok(C.NAMING.length >= 3, 'צריך לפחות 3 חיות לסבב השמות');
+  ok(C.NAMING.length >= 3, 'צריך לפחות 3 נושאים לסבב השמות');
+  C.NAMING.forEach((n, i) => {
+    const t = G.chapters[n.ch] && G.chapters[n.ch].nikud[n.v - 1];
+    if (!ok(t, `NAMING[${i}] "${n.cap}": אין פסוק ${n.ch}:${n.v} בנוסח 929 השמור`)) return;
+    ok(t.replace(MARKS, '').includes(n.find), `NAMING[${i}] "${n.cap}": המילה "${n.find}" לא מופיעה ב-${n.ref}`);
+    ok(n.ref === `בראשית ${B.heb(n.ch)}, ${B.heb(n.v)}`, `NAMING[${i}]: המקור "${n.ref}" לא תואם ל-${n.ch}:${n.v}`);
+  });
+  info(`${C.NAMING.length} נושאים לסבב השמות, כולם מעוגנים בפסוק`);
 
   // נוסח יהודי: בלי תפוח, ובלי לכתוב את שם ה' המפורש בשום מקום בממשק
   const files = ['content.js', 'public/common.js', 'public/host.js', 'public/play.js', 'public/host.html', 'public/play.html'];
@@ -159,10 +166,18 @@ async function partB() {
     const names = ['אדם', 'חוה', 'נח', 'שם', 'חם', 'יפת', 'נעמה', 'יובל', 'עדה', 'צלה', 'חנוך', 'אדם'];
     const bots = names.map((n) => makeBot(srv.url, n));
     await Promise.all(bots.map((b) => b.join()));
-    await waitFor(() => H && H.players && H.players.length === 12, 3000, '12 שחקנים בלובי');
+    const leaver = makeBot(srv.url, 'יוצא'); // יעזוב באמצע סבב 1
+    await leaver.join();
+    await waitFor(() => H && H.players && H.players.length === 13, 3000, '13 שחקנים בלובי');
     ok(bots[11].name === 'אדם 2', `שם כפול צריך להפוך ל"אדם 2", קיבלנו "${bots[11].name}"`);
     ok(H.qr && H.qr.startsWith('data:image/png'), 'יש קוד QR בלובי');
-    info('12 שחקנים בלובי');
+    // שינוי שם: אותו שחקן — לא שחקן נוסף על המסך
+    const r1 = await new Promise((res) => bots[1].s.emit('rename', { name: 'חוה החדשה' }, res));
+    await waitFor(() => H.players.some((x) => x.name === 'חוה החדשה'), 2000, 'השם החדש על המסך');
+    ok(r1 && r1.ok && H.players.length === 13 && !H.players.some((x) => x.name === 'חוה'), 'שינוי שם מחליף את השם הישן — בלי שחקן כפול');
+    const r2 = await new Promise((res) => bots[1].s.emit('rename', { name: 'נח' }, res));
+    ok(r2 && r2.name === 'נח 2', `שינוי לשם תפוס הופך ל"נח 2" (קיבלנו "${r2 && r2.name}")`);
+    info('13 שחקנים בלובי, שינוי שם במקום');
 
     // ---- סבב 1: אדמה ----
     await next('r1_intro');
@@ -171,10 +186,11 @@ async function partB() {
       await waitFor(() => H.phase === 'r1_name' && H.idx === a, 3000, `שם לחיה ${a}`);
       bots.forEach((b, i) => b.s.emit('r1:name', `שם-${a}-${i}`));
       if (a === 1) {
-        // רגרסיה לבאג הטיימר הישן: אחרי שכולם שלחו, הגשה נוספת (~300ms) תזמנה בעבר מעבר שני
+        leaver.s.emit('r1:name', 'שם-של-יוצא');
+        // רגרסיה לבאג הטיימר הישן: אחרי שכולם שלחו, שחקן שעוזב (~300ms) תזמן בעבר מעבר שני
         // שנורה ~1000ms — כשהמארח כבר דילג לחיה 2 — וסיים אותה מיד. כאן משחזרים בדיוק את הרצף.
         await wait(300);
-        bots[0].s.emit('r1:name', 'שם-מעודכן');
+        leaver.close();
         await waitFor(() => H.phase === 'r1_vote', 3000, 'כולם שלחו → הצבעה (חיה 1)');
         host.emit('host:next');
         await waitFor(() => H.phase === 'r1_reveal', 2000, 'מארח מדלג על ההצבעה');
@@ -184,8 +200,12 @@ async function partB() {
         ok(H.phase === 'r1_name' && H.idx === 2, `חיה 2 לא נקטעה ע"י טיימר ישן מחיה 1 (שלב: ${H.phase})`);
         continue;
       }
+      await waitFor(() => bots.every((b) => b.v.sent), 2000, 'כולם רואים "נשלח"');
+      ok(bots.every((b) => b.v.myText === undefined), 'הטלפון לא מקבל בחזרה את הטקסט ששלח');
+      bots[0].s.emit('r1:name', 'ניסיון-לשנות'); // שולחים רק פעם אחת
       await waitFor(() => H.phase === 'r1_vote', 3000, `כולם שלחו → הצבעה (חיה ${a})`);
       const entries = H.entries;
+      ok(entries.some((e) => e.text === `שם-${a}-0`) && !entries.some((e) => e.text === 'ניסיון-לשנות'), 'אי אפשר לשנות שם אחרי ששלחו');
       ok(entries.length === 12, `12 שמות להצבעה, יש ${entries.length}`);
       for (const b of bots) {
         const mine = b.v.entries.find((e) => e.mine);
@@ -209,13 +229,20 @@ async function partB() {
     // ---- סבב 2: אכל ----
     await next('r2_play');
     const before2 = bots.map((b) => b.v.me.score);
+    ok(bots.every((b) => b.v.r2 && b.v.r2.size === 9 && b.v.r2.bomb === -1), 'גן של 9 עצים, ומיקום עץ הדעת מוסתר בזמן המשחק');
     await Promise.all(bots.map(async (b, i) => {
       const target = 1 + (i % 6);
       for (let k = 0; k < target; k++) {
         if (!b.v.r2 || b.v.r2.state !== 'playing') break;
         const n = b.views;
-        b.s.emit('r2:eat');
-        await waitFor(() => b.views > n, 2000, 'תגובה לאכילה');
+        b.s.emit('r2:eat', (k + i) % 9);
+        await waitFor(() => b.views > n, 2000, 'תגובה לקטיף');
+        if (k === 0 && b.v.r2.state === 'playing') {
+          const e = b.v.r2.eaten;
+          b.s.emit('r2:eat', (k + i) % 9); // אותו עץ פעמיים — לא נספר
+          await wait(60);
+          ok(b.v.r2.eaten === e, 'קטיף מאותו עץ פעמיים לא נספר');
+        }
       }
       if (b.v.r2 && b.v.r2.state === 'playing') b.s.emit('r2:stop');
     }));
@@ -229,6 +256,8 @@ async function partB() {
       if (d !== want) { ok2 = false; ok(false, `סבב 2: ${b.name} (${r.state}, אכל ${r.eaten}) קיבל ${d} במקום ${want}`); }
     });
     ok(ok2, 'ניקוד סבב 2 תואם למצב של כל שחקן');
+    ok(bots.every((b) => b.v.r2.bomb >= 0 && b.v.r2.bomb < 9), 'בסוף הסבב מיקום עץ הדעת נחשף');
+    ok(bots.filter((b) => b.v.r2.state === 'out').every((b) => b.v.r2.picked.includes(b.v.r2.bomb)), 'מי שגורש — קטף בדיוק מעץ הדעת');
     const st = H.stats;
     info(`סבב 2: ${st.banked} עצרו, ${st.out} גורשו, ${st.greedy} איבדו את הסל`);
 
@@ -282,22 +311,34 @@ async function partB() {
     await next('r4_intro');
     await next('r4_tower');
     await waitFor(() => bots.every((b) => b.v.phase === 'r4_tower'), 2000, 'כולם בשלב המגדל');
-    const taps = new Array(bots.length).fill(0);
+    const hits = new Array(bots.length).fill(0);
+    const wrong = new Array(bots.length).fill(0);
     const before4 = bots.map((b) => b.v.me.score);
     for (let k = 0; k < 10; k++) {
-      bots.forEach((b, i) => { if (i % 3 !== 2 || k < 5) { b.s.emit('r4:tap', 2); taps[i] += 2; } });
-      await wait(160);
+      bots.forEach((b, i) => {
+        if (i % 4 !== 3 || k < 5) { b.s.emit('r4:tap', 1); hits[i] += 1; }
+        if (i % 3 === 2 && k === 6) { b.s.emit('r4:wrong', 1); wrong[i] += 1; } // הקשה על החומר של הצוות השני
+      });
+      await wait(260);
     }
     await wait(300);
     const teamOf = bots.map((b) => b.v.team.idx);
-    const expect = [0, 1].map((t) => taps.reduce((s, x, i) => s + (teamOf[i] === t ? x : 0), 0));
-    ok(H.bricks[0] === expect[0] && H.bricks[1] === expect[1], `לבנים לכל צוות: ${H.bricks} (ציפינו ${expect})`);
+    const expect = [0, 1].map((t) => bots.reduce((s, _, i) => s + (teamOf[i] === t ? hits[i] - wrong[i] : 0), 0));
+    ok(H.bricks[0] === expect[0] && H.bricks[1] === expect[1], `לבנים לכל צוות = פגיעות פחות טעויות: ${H.bricks} (ציפינו ${expect})`);
+    // מספם: אי אפשר לדווח 50 פגיעות בבת אחת
+    const spamBefore = H.bricks.slice();
+    bots[0].s.emit('r4:tap', 50);
+    await wait(300);
+    ok(H.bricks[teamOf[0]] - spamBefore[teamOf[0]] <= 6, `דיווח מוגזם של פגיעות נחסם (נוספו ${H.bricks[teamOf[0]] - spamBefore[teamOf[0]]})`);
+    hits[0] += H.bricks[teamOf[0]] - spamBefore[teamOf[0]];
     host.emit('host:next');
     await waitFor(() => H.phase === 'r4_scatter', 2000, 'דילוג → פיזור');
     const w = H.bricks[0] === H.bricks[1] ? -1 : H.bricks[0] > H.bricks[1] ? 0 : 1;
     ok(H.winner === w, 'הצוות עם יותר לבנים ניצח');
     await waitFor(() => bots.every((b) => b.v.phase === 'r4_scatter'), 2000, 'כולם בפיזור');
-    ok(bots.every((b, i) => b.v.me.score - before4[i] === Math.min(taps[i], 100) * 4 + (teamOf[i] === w ? 300 : 0)), 'ניקוד המגדל: 4 ללבנה + 300 לצוות המנצח');
+    ok(bots.every((b, i) => b.v.me.score - before4[i] === Math.max(0, Math.min(hits[i], 100) - wrong[i]) * 10 + (teamOf[i] === w ? 300 : 0)),
+      'ניקוד המגדל: 10 לפגיעה, פחות 10 לטעות, ו-300 לצוות המנצח');
+    ok(bots.every((b, i) => b.v.hits === hits[i] && b.v.wrong === wrong[i]), 'הטלפון מקבל את מספר הפגיעות והטעויות');
 
     // ---- טריוויה ----
     const seen = [];

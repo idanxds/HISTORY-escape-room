@@ -93,6 +93,7 @@
     const key = keyOf(v);
     if (key !== lastKey) {
       lastKey = key;
+      if (screen && screen.destroy) screen.destroy();
       screen = (SCREENS[v.phase] || SCREENS.unknown)(v);
       stage.replaceChildren(screen.node);
       onEnter(v, prev);
@@ -201,9 +202,10 @@
     const total = el('span', null, '0');
     return {
       node: el('div', { class: 'center' },
-        head(`תנו לחיה שם! (${v.idx} מתוך ${v.of})`, 'כתבו בטלפון את השם הכי מצחיק שאתם יכולים'),
+        head(`תנו שם! (${v.idx} מתוך ${v.of})`, 'כתבו בטלפון את השם הכי מצחיק שאתם יכולים — שולחים פעם אחת בלבד'),
         el('div', { class: 'animal-card panel pop' },
-          el('div', { class: 'em' }, v.animal.emoji), el('div', { class: 'cap' }, v.animal.cap)),
+          el('div', { class: 'em' }, v.animal.emoji), el('div', { class: 'cap' }, v.animal.cap),
+          v.animal.ref ? el('a', { class: 'ref929', href: B.link929(v.animal.ch), target: '_blank', rel: 'noopener' }, v.animal.ref) : null),
         el('div', { class: 'progress-line' }, sent, ' מתוך ', total, ' שלחו שם')),
       update(x) { sent.textContent = x.submitted; total.textContent = x.n; },
     };
@@ -214,7 +216,8 @@
     const total = el('span', null, '0');
     return {
       node: el('div', { class: 'center' },
-        head('הצביעו לשם הכי טוב!', 'בטלפון. אי אפשר להצביע לשם של עצמכם'),
+        head('הצביעו לשם הכי טוב!', 'בטלפון יופיעו כל השמות. אי אפשר להצביע לשם של עצמכם'),
+        el('div', { class: 'cap', style: 'font-size:1.5em;font-weight:700' }, v.animal.cap),
         el('div', { style: 'font-size:3.6em' }, v.animal.emoji),
         el('div', { class: 'entries' }, v.entries.map((e, i) => el('div', { class: 'entry panel', style: `animation-delay:${i * 60}ms` }, e.text))),
         el('div', { class: 'progress-line' }, voted, ' מתוך ', total, ' הצביעו')),
@@ -257,13 +260,33 @@
 
   SCREENS.r2_play = () => {
     const gs = gardenStats(false);
+    // 9 עצים, ואחד מהם (בהגרלה) הוא עץ הדעת — אצל כל שחקן במקום אחר
+    const grid = el('div', { class: 'garden-demo pop' },
+      Array.from({ length: 9 }, (_, i) => el('div', { class: 'gt' + (i === 4 ? ' secret' : '') }, i === 4 ? '❓' : '🌳')));
+    const snake = el('div', { class: 'snake panel host-snake' });
+    let k = 0;
+    const talk = () => {
+      const t = B.SNAKE[k++ % B.SNAKE.length];
+      snake.replaceChildren(el('span', { class: 's' }, '🐍'),
+        el('div', null, el('div', { class: 't' + (t.ref ? '' : ' plain') }, t.ref ? `״${t.text}״` : t.text), t.ref ? el('small', null, t.ref) : null));
+      snake.classList.remove('pop'); void snake.offsetWidth; snake.classList.add('pop');
+    };
+    talk();
+    const id = setInterval(talk, 5000);
     return {
       node: el('div', { class: 'center' },
-        head('אִכלו מעצי הגן!', 'כל פרי = 100 לסל. אבל אחד העצים הוא עץ הדעת… עִצרו בזמן!'),
-        el('div', { class: 'trees pop' }, '🌳🌴🌳', el('span', { class: 'forbidden' }, '🌳'), '🌲🌳'),
-        verse(Q.r2b),
+        head('קטפו מעצי הגן — אבל זהירות!', 'בטלפון לכל אחד יש 9 עצים. אחד מהם הוא עץ הדעת — בהגרלה, ולכל אחד במקום אחר'),
+        el('div', { class: 'garden-row' },
+          grid,
+          el('div', { class: 'odds panel enter' },
+            el('div', null, '🌳 עץ טוב = ', el('b', null, '\u2066+100\u2069'), ' לסל'),
+            el('div', null, '❓ עץ הדעת = גירוש מהגן: הסל אובד, ועוד ', el('b', null, '\u2066−100\u2069')),
+            el('div', null, '🎲 הסיכוי לעץ הדעת: ', el('b', null, '1 מתוך 9'), ', אחר כך 1 מתוך 8, 1 מתוך 7…'),
+            el('div', null, '✋ אפשר לעצור ולשמור בכל רגע'))),
+        snake,
         gs.grid),
       update(x) { gs.set(x.stats); },
+      destroy() { clearInterval(id); },
     };
   };
 
@@ -354,7 +377,12 @@
   SCREENS.r4_tower = (v) => {
     const t = towers(v);
     return {
-      node: el('div', { class: 'center' }, head('בנו את המגדל!', 'לחצו הכי מהר שאפשר — כל לחיצה היא לבנה'), t.wrap, verse(Q.r4b)),
+      node: el('div', { class: 'center' },
+        head('בנו את המגדל — בדיוק!', 'בטלפון נופלים לבנים וחמר. הקישו רק על החומר של הצוות שלכם, כשהוא בתוך הפס הזוהר'),
+        el('div', { class: 'legend enter' },
+          v.teams.map((tm, i) => el('span', { class: 'chip' }, `${tm.emoji} ${tm.name}: הקישו על ${B.MATERIALS[i].e}`)),
+          el('span', { class: 'chip bad-chip' }, '✗ חומר של הצוות השני = לבנה פחות')),
+        t.wrap, verse(Q.r4b)),
       update: (x) => t.set(x),
     };
   };
@@ -408,9 +436,10 @@
     const top = (v.board && v.board.top) || [];
     const place = (p, cls, medal) => p
       ? el('div', { class: 'p ' + cls }, el('div', { class: 'who' }, el('span', { class: 'av' }, p.avatar), p.name),
-          el('div', { class: 'block' }, medal, el('span', { class: 'sc' }, fmt(p.score) + ' נק׳')))
+          el('div', { class: 'psc' }, fmt(p.score) + ' נק׳'),
+          el('div', { class: 'block' }, medal))
       : el('div', { class: 'p ' + cls });
-    const rest = top.slice(3);
+    const rest = top.slice(3, 5); // מתחת לפודיום: רק המקומות 4 ו-5
     return {
       node: el('div', { class: 'center' },
         el('h1', { class: 'pop', style: 'font-size:3.4em' }, 'סוף המשחק!'),
